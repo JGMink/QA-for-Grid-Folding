@@ -113,7 +113,9 @@ Try adjusting the parameters to see how annealing affects convergence:
 
 ---
 
-## 🧠 What’s Next
+## 🏡 House-Keeping
+
+### 🧠 What’s Next
 
 - Add true Hybrid Annealing integration (mixing classical + quantum subroutines)
 
@@ -121,9 +123,7 @@ Try adjusting the parameters to see how annealing affects convergence:
 
 - Extend to larger lattice (3×3×3) and more complex alphabets (HP or HP+C variants)
 
----
-
-## 📄 References
+### 📄 References
 
 Irbäck, Knuthson, Mohanty (2025).
 Folding lattice proteins confined on minimal surfaces.
@@ -133,9 +133,7 @@ Georgia Tech OMSCS 7641.
 Simulated Annealing: Methods and Real-World Applications.
 Course site
 
----
-
-## 🧾 Paper Link
+### 🧾 Paper Link
 
 The accompanying Overleaf paper (in /paper/) explains:
 
