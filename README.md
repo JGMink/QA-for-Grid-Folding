@@ -71,7 +71,11 @@ For background on Simulated Annealing, see Georgia Tech’s excellent summary:
 ```
 ### Run
 ```bash
-  python main.py
+  # Simulated Annealing (legacy entrypoint preserved)
+  python3 simulated_annealing.py
+
+  # Hybrid Annealing (legacy entrypoint preserved)
+  python3 hybrid_annealing.py
 ```
 ### 🔧 Configuration
 
@@ -89,15 +93,15 @@ These allow quick experimentation with annealing depth, chain type, and cooling 
 
 ### 📊 Visualization
 
-After each run, the program automatically generates:
+After each run the program writes plots to the `plots/` directory with subfolders
+for each method:
 
-- Energy vs. Temperature plots
+- `plots/sa/` — simulated annealing outputs
+- `plots/ha/` — hybrid annealing outputs
 
-- Lattice configuration snapshots (final folded state)
-
-- You can enable live plotting during execution by setting:
-```{python}
-  LIVE_PLOT = True
+You can enable live plotting during execution by setting:
+```python
+LIVE_PLOT = True
 ```
 
 ### 🧩 Example Experiments
