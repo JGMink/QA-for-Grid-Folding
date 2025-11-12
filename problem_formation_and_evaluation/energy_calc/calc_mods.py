@@ -1,4 +1,4 @@
-import numpy as np
+import numpy as np # type: ignore
 
 # === Lagrange Penalties (Globals) ===
 L1, L2, L3 = 1.0, 1.0, 1.0  # All set to 1.0 as requested
@@ -49,13 +49,17 @@ def compute_E1(b):
 def compute_E2(b):
     """
     Ensures each site has at most one amino acid
+    E2 = (1/2) * sum_n sum_{i≠j} b_{i,n} b_{j,n}
     """
     N = b.shape[0]
-    E2 = 0.0
+    pair_count = 0
     for n in range(N):
         site_occupancy = np.sum(b[:, n])
-        E2 += site_occupancy * (site_occupancy - 1)
-    return int(0.5 * E2)
+        pair_count += site_occupancy * (site_occupancy - 1)
+    # site_occupancy * (site_occupancy - 1) already counts ordered pairs
+    # so we divide by 2 to get unordered pairs, then multiply by 1/2 from formula
+    # Net effect: pair_count already has the factor of 2 built in
+    return int(0.5 * pair_count)
 
 def compute_E3(b, adj):
     """
