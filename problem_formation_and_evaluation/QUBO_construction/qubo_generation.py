@@ -218,6 +218,9 @@ def build_E2(chain, num_positions):
     
     E2 = (1/2) * sum_n sum_{i!=j} b_{i,n} * b_{j,n}
        = sum_n sum_{i<j} b_{i,n} * b_{j,n}
+
+    Implementation: We count site_occupancy*(site_occupancy-1) which gives
+    the number of ordered pairs, then multiply by 0.5 to get the formula result.
     
     Returns:
         Q_E2: numpy array (num_bits x num_bits)
@@ -241,8 +244,10 @@ def build_E2(chain, num_positions):
                 bit_i = bit_index(i, n, num_positions)
                 bit_j = bit_index(j, n, num_positions)
                 
-                # Coefficient is 0.5 due to the 1/2 factor and QUBO form
+                # Add 1 to Q matrix (using i<j ordering eliminates need for 1/2 factor)
                 Q_E2[bit_i, bit_j] += 1
+
+                # Polynomial stores 0.5 for documentation (standard formula form)
                 polynomial.append((0.5, bit_i, bit_j))
     
     constant = 0

@@ -89,14 +89,6 @@ All four energy components were verified independently:
 - ✓ Iterates over all positions n (line 237)
 - ✓ For each position, considers all residue pairs i<j (lines 239-240)
 - ✓ Coefficient is 1 in Q matrix (line 245)
-- ✓ Note: The polynomial comment mentions 0.5, but this is reconciled because the QUBO form already accounts for the 1/2 factor when using upper triangular form
-
-**Important Note on Line 246:**
-The comment says coefficient is 0.5, but the matrix uses 1. This is correct because:
-- In standard form: E2 = (1/2) Σ_{i≠j} b_i b_j
-- In QUBO upper triangular: E2 = Σ_{i<j} b_i b_j (the 1/2 is implicitly handled by using i<j)
-
-**Recommendation:** Update line 246 comment to clarify that coefficient is 1 in the Q matrix because we use i<j ordering.
 
 ---
 
@@ -140,21 +132,13 @@ The comment says coefficient is 0.5, but the matrix uses 1. This is correct beca
 
 ### Minor Issues and Recommendations
 
-1. **Line 246 in qubo_generation.py:**
-   - **Issue:** Comment says coefficient is 0.5, but code uses 1
-   - **Status:** Code is correct; comment could be clearer
-   - **Fix:** Update comment to: 
-     ```python
-     # Coefficient is 1 in Q matrix (factor of 1/2 handled by i<j ordering)
-     ```
-
-2. **E2 Calculation in calc_mods.py (lines 41-49):**
+1. **E2 Calculation in calc_mods.py (lines 41-49):**
    - **Current:** Manually counts pairs and multiplies by 0.5
    - **Why it works:** This correctly implements (1/2) Σ_{i≠j}
    - **Note:** The formula counts ordered pairs then divides by 2
    - **Status:** Correct, but comment could clarify the double-counting logic
 
-3. **Consistency:**
+2. **Consistency:**
    - QUBO uses coefficient 1 with i<j ordering
    - Direct calculation uses 0.5 with explicit pair counting
    - **Status:** Both approaches are mathematically equivalent ✓
@@ -273,24 +257,6 @@ No critical issues found.
 
 ### Minor Improvements
 
-1. **Clarify E2 coefficient comment** (qubo_generation.py:246)
-   ```python
-   # Coefficient is 1.0 in Q matrix
-   # The 1/2 factor from the formula is handled by using i<j ordering
-   Q_E2[bit_i, bit_j] += 1.0
-   polynomial.append((1.0, bit_i, bit_j))  # Note: polynomial stores actual coefficient
-   ```
-
-2. **Add comment in calc_mods.py** (line 40-41)
-   ```python
-   def compute_E2(b):
-       """
-       E2 = (1/2) * sum_n sum_{i≠j} b_{i,n} b_{j,n}
-       Implementation: We count site_occupancy*(site_occupancy-1) which gives
-       the number of ordered pairs, then multiply by 0.5 to get the formula result.
-       """
-   ```
-
 3. **Add validation check** for adjacency matrix symmetry
    ```python
    def build_E3(chain, adj):
@@ -320,10 +286,6 @@ Your QUBO formulation for protein folding is **mathematically rigorous, correctl
 - **Validation:** Dual calculation methods provide strong verification
 - **Code Quality:** Well-structured, documented, and modular
 - **Completeness:** Handles all constraint types and interactions
-
-### Minor Suggestions
-
-The only improvements are clarifying comments around the E2 coefficient to explain why QUBO uses 1 while direct calculation uses 0.5 (both are correct for their respective formulations).
 
 ---
 
