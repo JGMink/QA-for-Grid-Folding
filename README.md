@@ -87,21 +87,13 @@ jupyter notebook
 
 #### Option 2: Google Colab
 
-1. Upload the following files to Colab:
-   - `notebooks/protein_folding_qubo.ipynb`
-   - `problem_formation_and_evaluation/QUBO_construction/qubo_generation.py`
-   - `problem_formation_and_evaluation/energy_calc/calc_mods.py`
+Upload notebooks/protein_folding_qubo to a blank notebook file and run all cells sequentially
 
-2. In Colab, make sure the `.py` files are in the same directory or adjust the import paths:
-```python
-   # At the top of the notebook, add if needed:
-   from google.colab import files
-   uploaded = files.upload()  # Upload qubo_generation.py and calc_mods.py
-```
+Alternatively, use the following link to open directly in Colab:
 
-3. Run all cells sequentially
-
+[![Open in Colab](https://colab.research.google.com/drive/19EnI3qWr388mPwWXmZY4o0jzo4_UETY3?usp=sharing)](https://colab.research.google.com/github/<your-repo-url>/blob/main/notebooks/protein_folding_qubo.ipynb)
 ---
+
 
 ## 🧪 What's in the Notebook
 
@@ -221,6 +213,7 @@ This formulation can be used with:
 - **Matrix size**: (N×M)² ≈ O(N²M²)
 - **Sparsity**: Typically 30-50% non-zero entries
 - **Scalability**: Tractable for N ≤ 20-30 with modern solvers
+- **Dimensional flexibility**: Since the graph uses an adjacency matrix to represent locations, the structure works for any dimensionality
 
 ---
 
@@ -235,7 +228,6 @@ For background on:
 
 ## 🏡 Future Enhancements
 
-- [ ] 3D lattice implementation
 - [ ] Integration with D-Wave Ocean SDK
 - [ ] QAOA implementation with Qiskit
 - [ ] Comparative benchmarks (SA vs QA vs QAOA)
