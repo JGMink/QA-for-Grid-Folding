@@ -320,8 +320,6 @@ If you use this educational implementation, please cite both:
 
 ## ⚖️ License
 
-## ⚖️ License
-
 This implementation is licensed under the MIT License. See [LICENSE.txt](LICENSE.txt) for details.
 
 **Please cite the original paper** when using this methodology:
