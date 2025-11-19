@@ -1,20 +1,52 @@
 # 🧬 Protein Folding via QUBO Formulation
 
-A comprehensive demonstration of how to formulate the **lattice protein folding problem** as a **Quadratic Unconstrained Binary Optimization (QUBO)** problem, suitable for quantum annealing, QAOA, or classical optimization methods.
+An **educational implementation** and explanation of the QUBO-based protein folding approach from:
+
+> **"Protein Folding on Quantum Computers: A Hybrid Quantum-Classical Approach"**  
+> *Aaranya et al. (2024)*  
+> arXiv:2510.01890  
+> [View Paper](https://arxiv.org/pdf/2510.01890)
+
+This project provides a **pedagogical walkthrough** of their methodology using **toy examples** to make the concepts accessible and verifiable.
 
 ---
 
-## 🌱 What This Project Does
+## 🎯 Purpose of This Project
 
-This project systematically transforms the protein folding problem into a QUBO formulation through:
+This repository is designed to:
+
+1. **Explain** the QUBO formulation from Aaranya et al. (2024) with detailed derivations
+2. **Demonstrate** the approach using small, tractable examples (4-6 residues)
+3. **Validate** that the implementation correctly encodes the problem
+4. **Provide** tested, reusable code for educational purposes
+
+**This is NOT a production protein folding solver** - it's an educational tool to understand how to formulate biological optimization problems for quantum computing.
+
+---
+
+## 📄 Original Paper Summary
+
+The paper by Aaranya et al. presents a hybrid quantum-classical approach that:
+- Formulates lattice protein folding as a QUBO problem
+- Uses Miyazawa-Jernigan interaction potentials
+- Encodes physical constraints (connectivity, self-avoidance) as penalty terms
+- Can be solved using quantum annealers, QAOA, or classical methods
+
+**Our contribution**: We provide a clean, well-documented implementation with toy examples that make the mathematics accessible to students and researchers new to quantum optimization.
+
+---
+
+## 🌱 What This Implementation Does
+
+This project systematically demonstrates the QUBO formulation through:
 
 1. **Problem Definition**: Simplified 2D lattice model with 3 amino acid types (H, P, C)
-2. **Mathematical Formulation**: Rigorous derivation of energy terms and constraints
-3. **QUBO Construction**: Step-by-step conversion of formulas into matrices
-4. **Validation**: Verification that the QUBO correctly encodes the problem
-5. **Scalability Analysis**: Demonstration from small (4 residues) to larger (6 residues) chains
+2. **Mathematical Formulation**: Complete derivation of all energy terms from the paper
+3. **QUBO Construction**: Step-by-step matrix building with visualization
+4. **Validation**: Dual calculation methods verify correctness
+5. **Toy Examples**: Small chains (4-6 residues) that can be verified by hand
 
-The core innovation is showing how **biological constraints** (chain connectivity, self-avoidance) and **optimization objectives** (Miyazawa-Jernigan interaction energy) can be unified into a single matrix suitable for quantum or classical solvers.
+The implementation shows how **biological constraints** (chain connectivity, self-avoidance) and **optimization objectives** (Miyazawa-Jernigan interaction energy) are unified into a single QUBO matrix.
 
 ---
 
@@ -23,22 +55,24 @@ The core innovation is showing how **biological constraints** (chain connectivit
 protein-folding-qubo/
 ├── problem_formation_and_evaluation/
 │   ├── energy_calc/
-│   │   └── calc_mods.py              # Direct energy calculation functions
-│   └── QUBO_construction/
-│       ├── qubo_generation.py        # QUBO matrix building functions
-│       └── construction_test.py      # Test suite (validates correctness)
+│   │   └── calc_mods.py              # Direct energy calculation
+│   ├── QUBO_construction/
+│   │   ├── qubo_generation.py        # QUBO matrix building
+│   │   └── construction_test.py      # Validation tests
+│   └── claude_eval/
+│       └── verify_qubo.py            # Comprehensive verification
 ├── notebooks/
-│   └── protein_folding_qubo.ipynb    # Main interactive demonstration
+│   └── protein_folding_qubo.ipynb    # Main tutorial notebook
+├── papers/
+│   └── protein_folding.pdf           # Original paper (Aaranya et al.)
 └── README.md
 ```
 
 ---
 
-## 🔍 Key Features
+## 🔍 Energy Formulation (Following Aaranya et al.)
 
-### Energy Formulation
-
-The total energy combines:
+The total energy combines four terms:
 
 $$E_{\text{total}} = E_{\text{MJ}} + \lambda_1 E_1 + \lambda_2 E_2 + \lambda_3 E_3$$
 
@@ -50,17 +84,19 @@ Where:
 
 ### Binary Encoding
 
-Each configuration is encoded as binary variables:
+Each configuration uses binary variables:
 - $b_{i,n} = 1$ if residue $i$ occupies position $n$
 - $b_{i,n} = 0$ otherwise
 
 For N residues and M positions: **N × M binary variables**
 
-### QUBO Matrix
+### QUBO Matrix Representation
 
-All energy terms are combined into a single matrix **Q** such that:
+All terms combine into a single matrix **Q**:
 
-$$E(x) = \text{offset} + \sum_i Q_{ii} x_i + \sum_{i<j} Q_{ij} x_i x_j$$
+$$E(x) = x^T Q x + \text{offset}$$
+
+This formulation is compatible with quantum annealers (D-Wave), QAOA, and classical solvers.
 
 ---
 
@@ -71,193 +107,228 @@ $$E(x) = \text{offset} + \sum_i Q_{ii} x_i + \sum_{i<j} Q_{ij} x_i x_j$$
 pip install numpy matplotlib seaborn jupyter
 ```
 
-### Running the Notebook
+### Running the Tutorial Notebook
 
 #### Option 1: Local Jupyter
 ```bash
-# Clone the repository
 git clone <your-repo-url>
 cd protein-folding-qubo
-
-# Launch Jupyter
-jupyter notebook
-
-# Open notebooks/protein_folding_qubo.ipynb
+jupyter notebook notebooks/protein_folding_qubo.ipynb
 ```
 
 #### Option 2: Google Colab
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19EnI3qWr388mPwWXmZY4o0jzo4_UETY3?usp=sharing)
 
-Upload notebooks/protein_folding_qubo to a blank notebook file and run all cells sequentially
-
-Alternatively, use the following link to open directly in Colab:
-
-[![Open in Colab](https://colab.research.google.com/drive/19EnI3qWr388mPwWXmZY4o0jzo4_UETY3?usp=sharing)](https://colab.research.google.com/github/<your-repo-url>/blob/main/notebooks/protein_folding_qubo.ipynb)
 ---
 
+## 🧪 What's in the Tutorial Notebook
 
-## 🧪 What's in the Notebook
+The notebook provides a **complete walkthrough** of the QUBO formulation:
 
 ### Section 1: Problem Definition (3-4 min)
-- Introduction to lattice protein folding
-- Amino acid types (H, P, C) and their interactions
-- Physical constraints explained
+- Introduction to the paper's approach
+- Lattice protein folding basics
+- Amino acid types and interactions
 
 ### Section 2: Mathematical Formulation (5-6 min)
 - Binary variable encoding
-- Derivation of all four energy terms (E_MJ, E₁, E₂, E₃)
-- Full LaTeX mathematics with explanations
+- **Detailed derivation** of all four energy terms
+- Step-by-step expansion of constraint penalties
 
 ### Section 3: QUBO Construction (8-10 min)
-- Step-by-step matrix building for each energy term
-- Visualization of QUBO matrices as heatmaps
-- Polynomial representation of energy functions
-- Combined QUBO matrix
+- Matrix building for each energy component
+- Visualization of QUBO structure
+- How constraints become penalty terms
 
-### Section 4: Small Example - HPCH Chain (4-5 min)
-- 4 residues on a 2×2 lattice (16 binary variables)
-- Complete walkthrough of matrix construction
-- Visualization of lattice configurations
+### Section 4: Toy Example - HPCH Chain (4-5 min)
+- **4 residues** on a 2×2 lattice (16 variables)
+- Small enough to verify calculations by hand
+- Complete matrix walkthrough
 
-### Section 5: Validation and Testing (5-6 min)
-- Test Case 1: Valid configuration (all constraints satisfied)
-- Test Case 2: Invalid configuration (multiple violations)
-- Verification that QUBO evaluation matches direct calculation
-- Color-coded lattice visualizations
+### Section 5: Validation (5-6 min)
+- Valid vs. invalid configurations
+- Verification: QUBO method = Direct calculation
+- Constraint violation detection
 
-### Section 6: Larger Example - HHCHPC Chain (3-4 min)
-- 6 residues on a 6-position lattice (36 binary variables)
-- Demonstrates scalability of the approach
+### Section 6: Slightly Larger Example - HHCHPC (3-4 min)
+- **6 residues** demonstrating scalability
+- Still tractable for educational purposes
 - Complexity analysis
 
-### Section 7: Analysis and Discussion (3-4 min)
-- Complexity scaling (how problem size grows)
-- Potential solvers (quantum annealing, QAOA, classical methods)
-- Future extensions (3D, larger chains, sophisticated energy models)
+### Section 7: Discussion (3-4 min)
+- Scaling behavior
+- Connection to quantum/classical solvers
+- Extensions and future work
+
+**Total time: ~30-35 minutes**
 
 ---
 
-## 🧩 Example Test Cases
+## 🧩 Validated Test Cases
 
-The notebook includes three validated test cases:
+All examples verified with dual calculation methods:
 
-| Test | Chain | Bitstring | Expected Energy (E_MJ, E₁, E₂, E₃) |
-|------|-------|-----------|-------------------------------------|
-| 1 | HPCH | `0010 1000 0100 0001` | (-1, 0, 0, 0) |
-| 2 | HCHP | `1100 0101 0100 1010` | (-1, 3, 4, 2) |
-| 3 | HHCHPC | `100000 000010 010000 001000 000100 000001` | (-2, 0, 0, 3) |
+| Test | Chain | Variables | Status | Valid Config? |
+|------|-------|-----------|--------|---------------|
+| 1 | HPCH | 16 | ✓ Pass | Yes (E=−1) |
+| 2 | HCHP | 16 | ✓ Pass | No (violations) |
+| 3 | HHCHPC | 36 | ✓ Pass | No (E₃ violation) |
 
-All tests pass with exact agreement between QUBO evaluation and direct calculation! ✓
+**All tests show exact agreement** between QUBO evaluation and direct energy calculation.
 
 ---
 
-## 🔧 Customization
+## 🔧 Running Verification Tests
 
-### Interaction Matrix
-Modify the interaction energies in `calc_mods.py`:
-```python
-C = {
-    ('H', 'H'): 1,   # Hydrophobic attraction
-    ('C', 'C'): -1,  # Charge repulsion
-    ('H', 'C'): 0,   # Neutral
-    # ... etc
-}
+To verify the implementation:
+
+```bash
+cd problem_formation_and_evaluation/QUBO_construction
+python construction_test.py
 ```
 
-### Lagrange Multipliers
-Adjust constraint penalties:
-```python
-L1, L2, L3 = 1.0, 1.0, 1.0  # Default: equal weighting
+For comprehensive verification:
+```bash
+cd problem_formation_and_evaluation/claude_eval
+python verify_qubo.py
 ```
 
-### Lattice Structure
-Define custom adjacency matrices for different lattice topologies in your notebook cells.
+Expected output:
+```
+✓ ALL TESTS PASSED - IMPLEMENTATION IS CORRECT
+```
 
 ---
 
 ## 📊 Visualization Features
 
 The notebook includes:
-- **Heatmaps**: QUBO matrix visualizations
+- **QUBO matrix heatmaps**: See the structure of Q
 - **Lattice diagrams**: 2D grid with residue placements
-- **Color coding**:
-  - 🔵 Blue nodes: Valid placements
-  - 🔴 Red nodes: E₂ violations (overlaps)
-  - 🟢 Green edges: Connected chain
-  - 🔴 Dashed red edges: E₃ violations (broken connectivity)
-- **Energy breakdown**: Individual contributions from each term
+- **Energy breakdowns**: Contribution from each term
+- **Color-coded violations**: Visual constraint checking
 
 ---
 
-## 🎯 Use Cases
+## 🎯 Potential Use Cases (Following the Paper)
 
 This formulation can be used with:
 
-1. **Quantum Annealers** (e.g., D-Wave): Direct QUBO input
-2. **QAOA**: Convert QUBO to Ising Hamiltonian
+1. **Quantum Annealers** (D-Wave): Direct QUBO implementation
+2. **QAOA**: Convert to Ising Hamiltonian for gate-based quantum computers
 3. **Simulated Annealing**: Classical probabilistic optimization
-4. **Branch & Bound**: Exact classical solvers
-5. **Genetic Algorithms**: Heuristic approaches
+4. **Hybrid Solvers**: Quantum-classical approaches (as in the original paper)
 
 ---
 
-## 🧠 Key Insights
+## 🧠 Educational Goals
 
-### Why QUBO?
-- **Unconstrained**: Converts hard constraints into soft penalties
-- **Quantum-friendly**: Natural encoding for quantum annealing and QAOA
-- **Modular**: Easy to add/modify constraints independently
-- **Verified**: Dual calculation methods ensure correctness
+### What You'll Learn:
+- How to formulate constrained optimization as QUBO
+- Converting biological constraints to penalty terms
+- Practical QUBO matrix construction
+- Verification techniques for quantum-compatible formulations
 
-### Complexity
-- **Variables**: N × M (linear in chain length and lattice size)
-- **Matrix size**: (N×M)² ≈ O(N²M²)
-- **Sparsity**: Typically 30-50% non-zero entries
-- **Scalability**: Tractable for N ≤ 20-30 with modern solvers
-- **Dimensional flexibility**: Since the graph uses an adjacency matrix to represent locations, the structure works for any dimensionality
+### Why Small Examples?
+- **Verifiable**: Can check calculations by hand
+- **Transparent**: Every matrix entry has clear meaning
+- **Debuggable**: Easy to trace errors
+- **Educational**: Focus on concepts, not scale
 
----
-
-## 📚 Further Reading
-
-For background on:
-- **Protein folding models**: Search for "HP model protein folding" or "Miyazawa-Jernigan potential"
-- **QUBO formulations**: Andrew Lucas's 2014 paper "Ising formulations of many NP problems" is excellent
-- **Quantum optimization**: The original QAOA paper by Farhi et al. (2014) on arXiv
+**For production protein folding**, see the original paper's full implementation and benchmarks.
 
 ---
 
-## 🏡 Future Enhancements
+## 📚 Related Resources
 
-- [ ] Integration with D-Wave Ocean SDK
+### Original Paper
+- Aaranya et al. (2024). "Protein Folding on Quantum Computers: A Hybrid Quantum-Classical Approach"
+- arXiv:2510.01890
+- [Paper PDF](papers/protein_folding.pdf)
+
+### Background Reading
+- **QUBO formulations**: Andrew Lucas (2014) - "Ising formulations of many NP problems"
+- **HP model**: Ken Dill's work on simplified protein models
+- **Miyazawa-Jernigan**: Original 1996 paper on residue interaction potentials
+- **QAOA**: Farhi et al. (2014) - Original quantum approximate optimization paper
+
+---
+
+## 🔄 Differences from Original Paper
+
+| Aspect | Original Paper | This Implementation |
+|--------|----------------|---------------------|
+| Scale | Production-scale chains | Toy examples (4-6 residues) |
+| Purpose | Research results | Educational tool |
+| Focus | Performance benchmarks | Mathematical clarity |
+| Code | Research codebase | Pedagogical, documented |
+| Validation | Quantum hardware results | Dual calculation verification |
+
+**This is complementary to the paper**: We provide the educational foundation to understand their methodology.
+
+---
+
+## 🏡 Future Extensions
+
+Potential enhancements (maintaining educational focus):
+
+- [ ] Integration with D-Wave Ocean SDK (live quantum annealing)
 - [ ] QAOA implementation with Qiskit
-- [ ] Comparative benchmarks (SA vs QA vs QAOA)
-- [ ] Larger protein chains (N > 10)
-- [ ] More sophisticated energy models (solvation, electrostatics)
-- [ ] Interactive lattice visualization (plotly/dash)
+- [ ] Step-by-step solver comparison (SA vs exact vs quantum)
+- [ ] Interactive visualization (plotly/dash)
+- [ ] Additional small examples with detailed walkthroughs
+- [ ] Jupyter widgets for parameter exploration
 
 ---
 
-## 🧾 Testing
+## 📧 Contact & Attribution
 
-To verify the QUBO construction:
-```bash
-cd problem_formation_and_evaluation/QUBO_construction
-python construction_test.py
+**Implementation by:** Jonah Minkoff  
+**Email:** jonah@planetminkoff.com
+
+**Based on the work of:**  
+Aaranya et al. (2024) - "Protein Folding on Quantum Computers"  
+arXiv:2510.01890
+
+---
+
+## 📜 Citation
+
+If you use this educational implementation, please cite both:
+
+**This implementation:**
+```bibtex
+@misc{minkoff2025qubo,
+  author = {Minkoff, Jonah},
+  title = {Protein Folding via QUBO Formulation: An Educational Implementation},
+  year = {2025},
+  url = {<your-repo-url>}
+}
 ```
 
-You should see:
-```
-✓ ALL TESTS PASSED!
+**Original paper:**
+```bibtex
+@article{aaranya2024protein,
+  title={Protein Folding on Quantum Computers: A Hybrid Quantum-Classical Approach},
+  author={Aaranya, et al.},
+  journal={arXiv preprint arXiv:2510.01890},
+  year={2024}
+}
 ```
 
 ---
 
-## 📧 Contact
+## ⚖️ License
 
-Questions, suggestions, or bug reports?  
-Email: **jonah@planetminkoff.com**
+MIT License.
+
+Please respect the original paper's work when using or extending this implementation.
 
 ---
 
-**Thanks for checking it out!** 🚀  
-If you find this useful, please star the repo and share with others interested in quantum optimization or computational biology!
+**Thanks for exploring quantum optimization for biology!** 🚀  
+
+If this helps your understanding, please:
+- ⭐ Star the repo
+- 📖 Read the original paper
+- 🔗 Share with others learning quantum computing or computational biology
