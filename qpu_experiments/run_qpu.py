@@ -54,7 +54,7 @@ sys.path.insert(0, str(REPO_ROOT))
 # Constants
 # ---------------------------------------------------------------------------
 
-SOLVER_ID       = "Advantage2_system1.11"
+SOLVER_ID       = "Advantage2_system1.13"
 NUM_READS       = 1000
 ANNEALING_TIME  = 20    # microseconds
 EMBED_TIMEOUT   = 600   # seconds (Zephyr may take longer on first attempt)
