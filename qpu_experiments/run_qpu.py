@@ -128,14 +128,14 @@ LATTICES = {8: (2, 4), 12: (3, 4), 16: (4, 4)}
 
 # Lambda configs per proposal: SA-direct, QPU-1.33x, Irback-style
 LAMBDA_CONFIGS = [
-    (3.0, 4.0, 4.0),
-    (4.0, 5.3, 5.3),
-    (1.5, 2.0, 2.0),
+    (5.2, 6.12, 6.9),   # SA-tuned optimum  (99.3% valid on SA)
+    (6.9, 8.14, 9.18),  # QPU-scaled 1.33x  (harder constraints for noisy QPU landscape)
+    (3.4, 4.52, 5.1),   # Conservative      (99.2% valid, lower absolute values = lower chain strength)
 ]
 LAMBDA_NAMES = {
-    (3.0, 4.0, 4.0): "SA_direct",
-    (4.0, 5.3, 5.3): "QPU_133x",
-    (1.5, 2.0, 2.0): "Irback",
+    (5.2, 6.12, 6.9):   "SA_tuned",
+    (6.9, 8.14, 9.18):  "QPU_133x",
+    (3.4, 4.52, 5.1):   "Conservative",
 }
 
 # ---------------------------------------------------------------------------
