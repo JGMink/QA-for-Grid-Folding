@@ -355,11 +355,18 @@ def solve_task(
 
     emb = load_or_compute_embedding(bqm, sampler, task_id, EMBEDDINGS_DIR)
 
+    # Chain strength: cap at 2x max QUBO coupling so QUBO signal isn't buried
+    # under hardware noise after normalization. uniform_torque_compensation gives
+    # ~5x, which scales QUBO terms down to ~0.13 hardware units (near noise floor).
+    max_coupling = max(abs(v) for v in bqm.quadratic.values())
+    chain_strength = round(max_coupling * 2.0, 2)
+
     composite = FixedEmbeddingComposite(sampler, emb)
     print(f"  [qpu] submitting  num_reads={NUM_READS}  "
-          f"annealing_time={ANNEALING_TIME}us", flush=True)
+          f"annealing_time={ANNEALING_TIME}us  chain_strength={chain_strength}", flush=True)
     t0 = time.time()
-    response = composite.sample(bqm, num_reads=NUM_READS, annealing_time=ANNEALING_TIME)
+    response = composite.sample(bqm, num_reads=NUM_READS, annealing_time=ANNEALING_TIME,
+                                chain_strength=chain_strength)
     wall_s = round(time.time() - t0, 2)
 
     # Chain break fraction (field added by FixedEmbeddingComposite)
@@ -609,6 +616,8 @@ def main() -> None:
                         choices=["embed", "solve", "analyze", "all"])
     parser.add_argument("--best-lambda", default="3.0,4.0,4.0",
                         help="For --run 2: comma-separated l1,l2,l3 (e.g. 3.0,4.0,4.0)")
+    parser.add_argument("--limit", type=int, default=None,
+                        help="Only run the first N tasks (for smoke-testing)")
     args = parser.parse_args()
 
     best_lambdas = tuple(float(x) for x in args.best_lambda.split(","))
@@ -624,6 +633,8 @@ def main() -> None:
         tasks      = build_run2_tasks(best_lambdas)
         run_label  = f"run2_scaling_{args.best_lambda.replace(',', '_')}"
 
+    if args.limit:
+        tasks = tasks[:args.limit]
     print(f"Run {args.run}: {len(tasks)} tasks  |  phase: {args.phase}")
 
     phases = ["embed", "solve", "analyze"] if args.phase == "all" else [args.phase]
