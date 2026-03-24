@@ -56,7 +56,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 SOLVER_ID       = "Advantage2_system1.13"
 NUM_READS       = 1000
-ANNEALING_TIME  = 20    # microseconds
+ANNEALING_TIME  = 200   # microseconds (20 gave 0% valid; 10x increase)
 EMBED_TIMEOUT   = 600   # seconds (Zephyr may take longer on first attempt)
 EMBED_TRIES     = 50
 EMBED_SEED      = 42
