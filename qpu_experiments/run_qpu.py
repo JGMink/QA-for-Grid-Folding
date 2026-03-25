@@ -44,7 +44,7 @@ from dwave.system import DWaveSampler, FixedEmbeddingComposite
 from dwave.embedding.chain_strength import uniform_torque_compensation
 from minorminer import find_embedding
 import dimod
-from dimod import BinaryQuadraticModel
+from dimod import BinaryQuadraticModel, SimulatedAnnealingSampler
 
 # Allow imports from repo root (gs_strats lives there)
 REPO_ROOT = Path(__file__).parent.parent
@@ -418,6 +418,126 @@ def solve_task(
 
 
 # ---------------------------------------------------------------------------
+# Reverse annealing helpers
+# ---------------------------------------------------------------------------
+
+def find_valid_sa_state(
+    sequence: str,
+    adj: np.ndarray,
+    lambdas: tuple,
+    max_reads: int = 200,
+) -> dict | None:
+    """
+    Run SA to find a valid protein-fold starting state for reverse annealing.
+    Returns a {var_idx: 0|1} dict, or None if no valid state found.
+    """
+    l1, l2, l3 = lambdas
+    linear, quadratic, offset = build_protein_qubo(sequence, adj, l1, l2, l3)
+    bqm = BinaryQuadraticModel(linear, quadratic, offset, vartype="BINARY")
+    sa = SimulatedAnnealingSampler()
+    response = sa.sample(bqm, num_reads=max_reads, num_sweeps=10_000,
+                         beta_range=(0.1, 5.0))
+    for datum in response.data():
+        is_valid, _, _, _ = validate_solution(datum.sample, sequence, adj, l1, l2, l3)
+        if is_valid:
+            return dict(datum.sample)
+    return None
+
+
+def solve_task_reverse(
+    sequence: str,
+    adj: np.ndarray,
+    lambdas: tuple,
+    sampler: DWaveSampler,
+    task_id: str,
+) -> dict:
+    """
+    Reverse annealing: start from a SA-valid conformation, pause at s=0.45,
+    let QPU search nearby for lower-energy valid states, re-anneal.
+
+    Valid rates should be much higher than forward annealing since we start
+    in the valid manifold and search locally via quantum tunneling.
+    """
+    l1, l2, l3 = lambdas
+    linear, quadratic, offset = build_protein_qubo(sequence, adj, l1, l2, l3)
+    bqm = BinaryQuadraticModel(linear, quadratic, offset, vartype="BINARY")
+    print(f"  [bqm] {len(bqm.variables)} vars  {len(bqm.quadratic)} quadratic terms",
+          flush=True)
+
+    # Find valid starting state via SA
+    print("  [sa]  finding valid initial state...", flush=True)
+    initial_state = find_valid_sa_state(sequence, adj, lambdas)
+    if initial_state is None:
+        raise RuntimeError(
+            f"SA could not find a valid state for {sequence} — "
+            "try increasing max_reads or adjusting lambdas"
+        )
+    print("  [sa]  valid initial state found", flush=True)
+
+    emb = load_or_compute_embedding(bqm, sampler, task_id, EMBEDDINGS_DIR)
+
+    max_coupling = max(abs(v) for v in bqm.quadratic.values())
+    chain_strength = round(max_coupling * CHAIN_STRENGTH_MULTIPLIER, 2)
+
+    composite = FixedEmbeddingComposite(sampler, emb)
+    print(f"  [qpu] reverse anneal  num_reads={NUM_READS}  "
+          f"schedule={REVERSE_ANNEAL_SCHEDULE}  chain_strength={chain_strength}",
+          flush=True)
+    t0 = time.time()
+    response = composite.sample(
+        bqm,
+        num_reads=NUM_READS,
+        anneal_schedule=REVERSE_ANNEAL_SCHEDULE,
+        initial_state=initial_state,
+        reinitialize_state=True,
+        chain_strength=chain_strength,
+    )
+    wall_s = round(time.time() - t0, 2)
+
+    cbf_arr = getattr(response.record, "chain_break_fraction", None)
+    mean_cbf = float(np.mean(cbf_arr)) if cbf_arr is not None else None
+
+    valid_samples = []
+    for datum in response.data():
+        is_valid, E_total, breakdown, path = validate_solution(
+            datum.sample, sequence, adj, l1, l2, l3
+        )
+        if is_valid:
+            valid_samples.append({
+                "E_MJ":            breakdown["E_MJ"],
+                "num_occurrences": datum.num_occurrences,
+                "path":            path,
+            })
+
+    n_total = int(sum(d.num_occurrences for d in response.data()))
+    n_valid = int(sum(s["num_occurrences"] for s in valid_samples))
+    valid_rate = round(100.0 * n_valid / n_total, 3) if n_total else 0.0
+    best_E_MJ  = min((s["E_MJ"] for s in valid_samples), default=None)
+
+    timing = response.info.get("timing", {})
+    cbf_str = f"  chain_breaks={mean_cbf*100:.1f}%" if mean_cbf is not None else ""
+    print(f"  [res] wall={wall_s}s  valid={valid_rate:.1f}%{cbf_str}", flush=True)
+
+    return {
+        "task_id":                   task_id,
+        "mode":                      "reverse",
+        "sequence":                  sequence,
+        "n_residues":                len(sequence),
+        "lambdas":                   list(lambdas),
+        "anneal_schedule":           REVERSE_ANNEAL_SCHEDULE,
+        "n_reads":                   n_total,
+        "n_valid":                   n_valid,
+        "valid_rate":                valid_rate,
+        "best_E_MJ":                 best_E_MJ,
+        "mean_chain_break_fraction": mean_cbf,
+        "qpu_access_us":             timing.get("qpu_access_time"),
+        "wall_time_s":               wall_s,
+        "timing":                    timing,
+        "solved_at":                 datetime.now().isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Ground truth loader
 # ---------------------------------------------------------------------------
 
@@ -437,28 +557,39 @@ def load_ground_truths() -> dict:
 
 CHAIN_STRENGTH_MULTIPLIER = 1  # × max_coupling; baked into task_id to prevent collisions
 
-def _task_id(prefix: str, seq: str, lambdas: tuple) -> str:
+# Reverse annealing: pause at s=0.45 for 100µs then re-anneal
+# Total schedule time ~120µs; annealing_time is ignored when anneal_schedule is set
+REVERSE_ANNEAL_SCHEDULE = [
+    [0.0,   1.0],   # start fully annealed (at initial_state)
+    [10.0,  0.45],  # reverse to s=0.45 in 10µs
+    [110.0, 0.45],  # pause 100µs at s=0.45 (thermal fluctuations search nearby)
+    [120.0, 1.0],   # re-anneal to s=1 in 10µs
+]
+
+
+def _task_id(prefix: str, seq: str, lambdas: tuple, mode: str = "forward") -> str:
     lname = LAMBDA_NAMES.get(lambdas, f"{lambdas[0]}_{lambdas[1]}_{lambdas[2]}")
-    return f"{prefix}_{seq}_{lname}_AT{ANNEALING_TIME}_CS{CHAIN_STRENGTH_MULTIPLIER}x"
+    suffix = "_RA" if mode == "reverse" else f"_AT{ANNEALING_TIME}"
+    return f"{prefix}_{seq}_{lname}_CS{CHAIN_STRENGTH_MULTIPLIER}x{suffix}"
 
 
-def build_run1_tasks() -> list:
+def build_run1_tasks(mode: str = "forward") -> list:
     rows, cols = LATTICES[8]
     adj = build_2d_lattice(rows, cols)
     return [
-        (seq, adj, lam, _task_id("r1", seq, lam))
+        (seq, adj, lam, _task_id("r1", seq, lam, mode))
         for seq in SEQ_8
         for lam in LAMBDA_CONFIGS
     ]
 
 
-def build_run2_tasks(best_lambdas: tuple) -> list:
+def build_run2_tasks(best_lambdas: tuple, mode: str = "forward") -> list:
     tasks = []
     for size, seqs in [(8, SEQ_8_RUN2), (12, SEQ_12_RUN2), (16, SEQ_16_RUN2)]:
         rows, cols = LATTICES[size]
         adj = build_2d_lattice(rows, cols)
         for seq in seqs:
-            tid = _task_id(f"r2_{size}res", seq, best_lambdas)
+            tid = _task_id(f"r2_{size}res", seq, best_lambdas, mode)
             tasks.append((seq, adj, best_lambdas, tid))
     return tasks
 
@@ -480,9 +611,9 @@ def phase_embed(tasks: list, sampler: DWaveSampler) -> None:
     print(f"\nAll embeddings cached -> {EMBEDDINGS_DIR}", flush=True)
 
 
-def phase_solve(tasks: list, sampler: DWaveSampler) -> None:
+def phase_solve(tasks: list, sampler: DWaveSampler, mode: str = "forward") -> None:
     print(f"\n{'='*60}")
-    print(f"PHASE: SOLVE  ({len(tasks)} tasks)")
+    print(f"PHASE: SOLVE  ({len(tasks)} tasks)  mode={mode}")
     print(f"{'='*60}\n")
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -501,7 +632,10 @@ def phase_solve(tasks: list, sampler: DWaveSampler) -> None:
 
         print(f"[{i+1}/{len(tasks)}] {tid}", flush=True)
         try:
-            result = solve_task(seq, adj, lam, sampler, tid)
+            if mode == "reverse":
+                result = solve_task_reverse(seq, adj, lam, sampler, tid)
+            else:
+                result = solve_task(seq, adj, lam, sampler, tid)
             with open(result_file, "w") as f:
                 json.dump(result, f, indent=2)
             total_qpu_us += result.get("qpu_access_us") or 0
@@ -618,6 +752,8 @@ def main() -> None:
     parser.add_argument("--run",  type=int, required=True, choices=[1, 2])
     parser.add_argument("--phase", required=True,
                         choices=["embed", "solve", "analyze", "all"])
+    parser.add_argument("--mode", default="forward", choices=["forward", "reverse"],
+                        help="forward: standard annealing; reverse: start from SA-valid state")
     parser.add_argument("--best-lambda", default="3.0,4.0,4.0",
                         help="For --run 2: comma-separated l1,l2,l3 (e.g. 3.0,4.0,4.0)")
     parser.add_argument("--limit", type=int, default=None,
@@ -629,21 +765,20 @@ def main() -> None:
         parser.error("--best-lambda must be three comma-separated floats")
 
     if args.run == 1:
-        tasks      = build_run1_tasks()
-        run_label  = "run1_weight_validation"
+        tasks      = build_run1_tasks(mode=args.mode)
+        run_label  = f"run1_weight_validation_{args.mode}"
     else:
         if best_lambdas not in LAMBDA_NAMES:
             LAMBDA_NAMES[best_lambdas] = "_".join(str(x) for x in best_lambdas)
-        tasks      = build_run2_tasks(best_lambdas)
-        run_label  = f"run2_scaling_{args.best_lambda.replace(',', '_')}"
+        tasks      = build_run2_tasks(best_lambdas, mode=args.mode)
+        run_label  = f"run2_scaling_{args.best_lambda.replace(',', '_')}_{args.mode}"
 
     if args.limit:
         tasks = tasks[:args.limit]
-    print(f"Run {args.run}: {len(tasks)} tasks  |  phase: {args.phase}")
+    print(f"Run {args.run}: {len(tasks)} tasks  |  phase: {args.phase}  |  mode: {args.mode}")
 
     phases = ["embed", "solve", "analyze"] if args.phase == "all" else [args.phase]
 
-    # Connect once (free — needed for embed and solve)
     sampler = None
     if "embed" in phases or "solve" in phases:
         LOGS_DIR.mkdir(parents=True, exist_ok=True)
@@ -652,7 +787,7 @@ def main() -> None:
         print(f"Connected to {sampler.solver.name}", flush=True)
 
     if "embed"   in phases: phase_embed(tasks, sampler)
-    if "solve"   in phases: phase_solve(tasks, sampler)
+    if "solve"   in phases: phase_solve(tasks, sampler, mode=args.mode)
     if "analyze" in phases: phase_analyze(tasks, run_label)
 
 
