@@ -45,6 +45,10 @@ from dwave.embedding.chain_strength import uniform_torque_compensation
 from minorminer import find_embedding
 import dimod
 from dimod import BinaryQuadraticModel, SimulatedAnnealingSampler
+try:
+    from neal import SimulatedAnnealingSampler as NealSASampler
+except ImportError:
+    NealSASampler = SimulatedAnnealingSampler   # fallback to dimod
 
 # Allow imports from repo root (gs_strats lives there)
 REPO_ROOT = Path(__file__).parent.parent
@@ -434,7 +438,7 @@ def find_valid_sa_state(
     l1, l2, l3 = lambdas
     linear, quadratic, offset = build_protein_qubo(sequence, adj, l1, l2, l3)
     bqm = BinaryQuadraticModel(linear, quadratic, offset, vartype="BINARY")
-    sa = SimulatedAnnealingSampler()
+    sa = NealSASampler()
     response = sa.sample(bqm, num_reads=max_reads, num_sweeps=10_000,
                          beta_range=(0.1, 5.0))
     for datum in response.data():
